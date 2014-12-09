@@ -14,22 +14,19 @@
         android:id="@+id/button0"
         android:text="Setup"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical" />
+        android:layout_height="wrap_content" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Send ON"
-        android:id="@+id/button1"
-        android:layout_gravity="center_vertical" />
+        android:id="@+id/button1" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Send OFF"
-        android:id="@+id/button2"
-        android:layout_gravity="center_vertical" />
+        android:id="@+id/button2" />
 
     <EditText
         android:layout_width="wrap_content"
@@ -37,5 +34,63 @@
         android:id="@+id/editText"
         android:layout_gravity="bottom"
         android:layout_weight="5.37" />
+
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar1"
+        android:layout_below="@+id/textView"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:indeterminate="false" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar2"
+        android:layout_below="@+id/progressBar1"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:indeterminate="false" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar3"
+        android:layout_below="@+id/progressBar2"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:indeterminate="false" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textView2"
+        android:layout_below="@+id/textView3"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textView3"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/progressBar3" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="New Text"
+        android:id="@+id/textView4"
+        android:layout_below="@+id/textView2"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
 </LinearLayout>

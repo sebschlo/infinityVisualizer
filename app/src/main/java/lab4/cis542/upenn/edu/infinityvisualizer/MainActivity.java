@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.audiofx.Visualizer;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -16,6 +17,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,6 +45,11 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     private ConnectedThread CT;
 
     private ArrayAdapter mArrayAdapter;
+
+    private Visualizer mViz;
+    private int sessionID = 0;
+    private int priority = 1;
+    private double max_mag = 1;
 
 
     @Override
@@ -78,6 +85,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             Toast.makeText(getApplicationContext(),"Already on", Toast.LENGTH_LONG).show();
         }
 
+        // Set up visualizer
+        initViz();
+        mViz.setEnabled(true);
+
     }
 
 
@@ -100,6 +111,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
     protected void onDestroy() {
         super.onDestroy();
 //        unregisterReceiver(mReceiver);
+        deinitViz();
     }
 
     @Override
@@ -287,5 +299,146 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             }
         }
     };
+
+
+
+    private void waveformUpdate(byte[] waveBytes, int sRate) {
+        //do stuff
+    }
+
+    private void fftUpdate(byte[] fftBytes, int sRate) {
+        int n = mViz.getCaptureSize();
+        byte rfk;
+        byte ifk;
+        double rmsVal;
+        double rmsMax = 0;
+        double[] fftMags = new double[n/2];
+        double max_alpha = .95; //.8 is a good number
+        int bucket_offset = 0;
+
+        rfk = fftBytes[0];
+        ifk = fftBytes[0];
+        fftMags[0] = (double)Math.sqrt(rfk*rfk);
+        for(int i = 1; i <n/2; i++) {
+            rfk = fftBytes[i*2];
+            ifk = fftBytes[i*2+1];
+            rmsVal = Math.sqrt(rfk*rfk + ifk*ifk);
+            if(rmsVal>rmsMax){
+                rmsMax = rmsVal;
+            }
+            fftMags[i] = rmsVal;
+        }
+
+        int max_range = (int)Math.round(.03*((double)n/2.0));
+        int bucket;
+        int bucketSize = (int)Math.floor((max_range-bucket_offset)/3);
+
+        double[] sum = new double[3];
+        double num_r = 0;
+        double num_g = 0;
+        double num_b = 0;
+
+        double r_max = 0;
+        double g_max = 0;
+        double b_max = 0;
+
+        for(int j = bucket_offset; j<n/2; j++){
+            if(j<bucketSize){
+                bucket = 0;
+            } else if(j>2*bucketSize) {
+                bucket = 2;
+            } else {
+                bucket = 1;
+            }
+            switch (bucket) {
+                case 0:
+                    num_r++;
+                    if(fftMags[j]>r_max) {
+                        r_max = fftMags[j];
+                    }
+                    break;
+                case 1:
+                    num_g++;
+                    if(fftMags[j]>g_max) {
+                        g_max = fftMags[j];
+                    }
+                    break;
+                case 2:
+                    num_b++;
+                    if(fftMags[j]>b_max) {
+                        b_max = fftMags[j];
+                    }
+                    break;
+            }
+            sum[bucket] = sum[bucket] + fftMags[j];
+        }
+
+        TextView textView1 = (TextView) findViewById(R.id.textView3);
+        textView1.setText(Double.toString(bucketSize));
+        TextView textView2 = (TextView) findViewById(R.id.textView2);
+        textView2.setText(Double.toString(num_g));
+        TextView textView3 = (TextView) findViewById(R.id.textView4);
+        textView3.setText(Double.toString(num_b));
+
+        double maxSum = 1;
+        double mix_sum = .2;
+
+        sum[0] = mix_sum*(sum[0]/num_r)+(1-mix_sum)*r_max;
+        sum[1] = mix_sum*(sum[1]/num_g)+(1-mix_sum)*g_max;
+        sum[2] = mix_sum*(sum[2]/num_b)+(1-mix_sum)*b_max;
+
+        for (int j = 0; j<3;j++) {
+            if(sum[j]>maxSum){
+                maxSum = sum[j];
+            }
+        }
+
+        if(maxSum>max_mag) {
+            max_mag = maxSum;
+        } else {
+            max_mag = max_alpha * max_mag + (1 - max_alpha) * 1.2* maxSum;
+        }
+
+        double r_val_f = 100*(sum[0])/max_mag;
+        double g_val_f = 100*(sum[1])/max_mag;
+        double b_val_f = 100*(sum[2])/max_mag;
+
+        int r_val = (int)r_val_f;
+        int g_val = (int)g_val_f;
+        int b_val = (int)b_val_f;
+
+        ProgressBar pg1 = (ProgressBar) findViewById(R.id.progressBar1);
+        pg1.setProgress(r_val);
+        ProgressBar pg2 = (ProgressBar) findViewById(R.id.progressBar2);
+        pg2.setProgress(g_val);
+        ProgressBar pg3 = (ProgressBar) findViewById(R.id.progressBar3);
+        pg3.setProgress(b_val);
+
+    }
+
+    private void initViz() {
+        mViz = new Visualizer(sessionID);
+        mViz.setCaptureSize(Visualizer.getCaptureSizeRange()[1]);
+        mViz.setDataCaptureListener(
+                new Visualizer.OnDataCaptureListener() {
+
+                    public void onWaveFormDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate){
+                        waveformUpdate(bytes,samplingRate);
+                    }
+
+                    public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int samplingRate) {
+                        fftUpdate(bytes,samplingRate);
+                    }
+                }, (Visualizer.getMaxCaptureRate()/2), true, true);
+    }
+
+    private void deinitViz() {
+        mViz.setEnabled(false);
+        mViz.release();
+
+    }
+
+
+
 
 }
