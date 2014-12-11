@@ -43,6 +43,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 
     private ConnectedThread CT;
+    private boolean successfullyConnected = false;
+    private boolean transmitColor = false;
 
     private ArrayAdapter mArrayAdapter;
 
@@ -163,25 +165,26 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
                 break;
 
             case R.id.button1:
-                int c = 123;
-                int H = 72;
-                char buffer[] = {(char)c,(char)H,10,10};
-                String s3 = new String(buffer);
-                String s = "{HOR";
-                Log.d("what what", "Sending the HOR");
-//                CT.write(s.getBytes());
-                CT.write(s3.getBytes());
+                transmitColor = true;
                 break;
 
             case R.id.button2:
-                String s2 = "{RO";
-                Log.d("what what", "Sending the off sequence");
-                CT.write(s2.getBytes());
+                sendValues(0,0,0);
+                transmitColor = false;
                 break;
         }
 
     }
 
+
+    private void sendValues(int r, int g, int b)
+    {
+        if  (successfullyConnected && transmitColor) {
+            char buffer[] = {(char)123, (char)r, (char)g, (char)b};
+            String s = new String(buffer);
+            CT.write(s.getBytes());
+        }
+    }
 
 
     private class ConnectThread extends Thread {
@@ -198,8 +201,9 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             try {
                 // MY_UUID is the app's UUID string, also used by the server code
                 tmp = device.createRfcommSocketToServiceRecord(MY_UUID);
+                successfullyConnected = true;
                 Log.d("what what", "connection started");
-            } catch (IOException e) { }
+            } catch (IOException e) {}
             mmSocket = tmp;
         }
 
@@ -373,19 +377,22 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             sum[bucket] = sum[bucket] + fftMags[j];
         }
 
-        TextView textView1 = (TextView) findViewById(R.id.textView3);
-        textView1.setText(Double.toString(bucketSize));
-        TextView textView2 = (TextView) findViewById(R.id.textView2);
-        textView2.setText(Double.toString(num_g));
-        TextView textView3 = (TextView) findViewById(R.id.textView4);
-        textView3.setText(Double.toString(num_b));
-
         double maxSum = 1;
         double mix_sum = .2;
 
         sum[0] = mix_sum*(sum[0]/num_r)+(1-mix_sum)*r_max;
         sum[1] = mix_sum*(sum[1]/num_g)+(1-mix_sum)*g_max;
         sum[2] = mix_sum*(sum[2]/num_b)+(1-mix_sum)*b_max;
+
+        double RS = 1.0;
+        double GS = 1.0;
+        double BS = 1.0;
+
+        sum[0] = RS*sum[0];
+        sum[1] = BS*sum[1];
+        sum[2] = GS*sum[2];
+
+
 
         for (int j = 0; j<3;j++) {
             if(sum[j]>maxSum){
@@ -396,7 +403,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         if(maxSum>max_mag) {
             max_mag = maxSum;
         } else {
-            max_mag = max_alpha * max_mag + (1 - max_alpha) * 1.2* maxSum;
+            max_mag = max_alpha * max_mag + (1 - max_alpha) * 2.0* maxSum;
         }
 
         double r_val_f = 100*(sum[0])/max_mag;
@@ -413,6 +420,10 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         pg2.setProgress(g_val);
         ProgressBar pg3 = (ProgressBar) findViewById(R.id.progressBar3);
         pg3.setProgress(b_val);
+
+        sendValues(r_val,g_val,b_val);
+
+
 
     }
 
